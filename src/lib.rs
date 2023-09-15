@@ -1,7 +1,8 @@
-use std::{env, error::Error, path::PathBuf, str::FromStr, fs};
+use std::{env, error::Error, fs, path::PathBuf, str::FromStr};
 
-mod errors;
 mod file_node;
+
+use file_node::FileNode;
 
 pub fn run(args: Vec<String>) -> Result<(), Box<dyn Error>> {
     let path = match args.get(1) {
@@ -10,7 +11,28 @@ pub fn run(args: Vec<String>) -> Result<(), Box<dyn Error>> {
         None => env::current_dir()?,
     };
 
-    fs::read_dir(path);
+    // read paths and map into a vec of file nodes
+    // any error that occurs here will need to be handled by the caller
+    let mut file_nodes = fs::read_dir(path)?
+        .map(|result| {
+            result.map(|entry| {
+                let name = entry.file_name();
+                entry.metadata().map_or(None, move |meta| {
+                    Some(FileNode::new(name, meta.len(), meta.is_dir()))
+                })
+            })
+        })
+        .collect::<Result<Vec<Option<FileNode>>, std::io::Error>>()?;
+
+
+    // sort for consistent view
+    file_nodes.sort();
+
+    file_nodes.iter().for_each(|node| {
+        if let Some(node) = node {
+            println!("{}", node);
+        }
+    });
 
     Ok(())
 }

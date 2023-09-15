@@ -1,10 +1,10 @@
-use std::{process, env};
+use std::{env, process};
 
 fn main() {
     let args = env::args().collect::<Vec<_>>();
 
-    rls::run().unwrap_or_else(|| {
-        eprintln!("failed to run rls");
+    rls::run(args).unwrap_or_else(|err| {
+        eprintln!("failed to run rls {}", err);
         process::exit(1);
     });
 }
